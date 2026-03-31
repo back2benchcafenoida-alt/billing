@@ -1,0 +1,328 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CafeMaster POS Pro</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap');
+        body { font-family: 'Inter', sans-serif; background-color: #f1f5f9; }
+        .tab-content { display: none; }
+        .active-tab { display: block; }
+        .receipt-preview { font-family: 'Courier New', Courier, monospace; font-size: 12px; }
+    </style>
+</head>
+<body class="min-h-screen pb-12">
+
+    <nav class="bg-slate-900 text-white shadow-xl sticky top-0 z-50">
+        <div class="max-w-6xl mx-auto px-4 py-3 flex justify-between items-center">
+            <div class="flex items-center gap-2">
+                <span class="text-2xl">☕</span>
+                <h1 id="navBrandName" class="font-bold text-lg tracking-tight">CAFE POS</h1>
+            </div>
+            <div class="flex gap-4 text-sm font-medium">
+                <button onclick="showTab('pos')" class="px-3 py-1 rounded hover:bg-slate-700 transition">POS</button>
+                <button onclick="showTab('inventory')" class="px-3 py-1 rounded hover:bg-slate-700 transition">MENU</button>
+                <button onclick="showTab('settings')" class="px-3 py-1 rounded hover:bg-slate-700 transition">SETTINGS</button>
+            </div>
+        </div>
+    </nav>
+
+    <div class="max-w-6xl mx-auto p-4 lg:p-6">
+        
+        <section id="pos" class="tab-content active-tab animate-fade-in">
+            <div class="grid grid-cols-1 lg:grid-cols-12 gap-6">
+                
+                <div class="lg:col-span-7">
+                    <div class="flex justify-between items-center mb-4">
+                        <h2 class="text-xl font-bold text-slate-800">Select Items</h2>
+                        <input type="text" id="menuSearch" onkeyup="filterMenu()" placeholder="Search menu..." class="px-3 py-1 border rounded-lg text-sm w-48">
+                    </div>
+                    <div id="posMenuGrid" class="grid grid-cols-2 sm:grid-cols-3 gap-3">
+                        </div>
+                </div>
+
+                <div class="lg:col-span-5">
+                    <div class="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden sticky top-20">
+                        <div class="p-5 border-b bg-slate-50">
+                            <h2 class="font-bold text-slate-700">Current Order</h2>
+                        </div>
+                        <div class="p-5 space-y-4">
+                            <div class="grid grid-cols-2 gap-3">
+                                <input type="text" id="custName" placeholder="Customer Name" class="w-full border p-2 rounded-lg text-sm focus:ring-2 focus:ring-indigo-500 outline-none">
+                                <input type="tel" id="custMobile" placeholder="Mobile Number" class="w-full border p-2 rounded-lg text-sm focus:ring-2 focus:ring-indigo-500 outline-none">
+                            </div>
+
+                            <div class="min-h-[150px] max-h-[300px] overflow-y-auto border-y py-2" id="cartList">
+                                <p class="text-center text-slate-400 mt-10 text-sm italic">No items selected</p>
+                            </div>
+
+                            <div class="pt-2">
+                                <div class="flex justify-between text-slate-600 text-sm mb-1">
+                                    <span>Subtotal</span>
+                                    <span>₹<span id="subTotal">0</span></span>
+                                </div>
+                                <div class="flex justify-between text-2xl font-bold text-slate-900 mt-2">
+                                    <span>Total</span>
+                                    <span>₹<span id="finalTotal">0</span></span>
+                                </div>
+                            </div>
+
+                            <div class="grid grid-cols-1 gap-2 pt-4">
+                                <button onclick="handlePrint()" class="bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-4 rounded-xl shadow-lg shadow-indigo-200 transition flex items-center justify-center gap-2">
+                                    <span>🖨️</span> PRINT RECEIPT
+                                </button>
+                                <button onclick="clearOrder()" class="text-slate-400 text-xs hover:text-red-500 transition">CLEAR ALL</button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <section id="inventory" class="tab-content max-w-3xl mx-auto">
+            <div class="bg-white rounded-2xl shadow-sm p-6 border border-slate-200">
+                <h2 class="text-xl font-bold mb-6 text-slate-800">Edit Menu Items</h2>
+                <div class="flex flex-col sm:flex-row gap-3 mb-8 bg-slate-50 p-4 rounded-xl">
+                    <input type="text" id="newLabel" placeholder="Item Name (e.g. Pizza)" class="flex-1 border p-2 rounded-lg">
+                    <input type="number" id="newPrice" placeholder="Price" class="sm:w-32 border p-2 rounded-lg">
+                    <button onclick="saveItem()" class="bg-emerald-600 text-white px-6 py-2 rounded-lg font-bold hover:bg-emerald-700 transition">+ Add</button>
+                </div>
+                <div id="mgmtList" class="divide-y">
+                    </div>
+            </div>
+        </section>
+
+        <section id="settings" class="tab-content max-w-xl mx-auto">
+            <div class="bg-white rounded-2xl shadow-sm p-6 border border-slate-200">
+                <h2 class="text-xl font-bold mb-6 text-slate-800">Printer & Brand Setup</h2>
+                <div class="space-y-4">
+                    <div>
+                        <label class="block text-sm font-semibold text-slate-600 mb-1">Cafe Name</label>
+                        <input type="text" id="setBrand" class="w-full border p-2 rounded-lg focus:ring-2 focus:ring-indigo-500 outline-none">
+                    </div>
+                    <div>
+                        <label class="block text-sm font-semibold text-slate-600 mb-1">Receipt Header (Address/Tax ID)</label>
+                        <textarea id="setHeader" rows="2" class="w-full border p-2 rounded-lg text-sm focus:ring-2 focus:ring-indigo-500 outline-none"></textarea>
+                    </div>
+                    <div>
+                        <label class="block text-sm font-semibold text-slate-600 mb-1">Receipt Footer</label>
+                        <input type="text" id="setFooter" class="w-full border p-2 rounded-lg text-sm focus:ring-2 focus:ring-indigo-500 outline-none">
+                    </div>
+                    <button onclick="updateSettings()" class="w-full bg-slate-900 text-white py-3 rounded-xl font-bold mt-4 hover:bg-black transition">SAVE ALL SETTINGS</button>
+                </div>
+            </div>
+        </section>
+
+    </div>
+
+    <script>
+        // --- DATA STATE ---
+        let menuItems = JSON.parse(localStorage.getItem('cafe_menu')) || [
+            { name: "Coffee", price: 50 },
+            { name: "Sandwich", price: 120 }
+        ];
+        let cafeConfig = JSON.parse(localStorage.getItem('cafe_config')) || {
+            name: "MY CAFE",
+            header: "123 Food Street, City",
+            footer: "Thank you! Visit Again"
+        };
+        let cart = [];
+
+        // --- INITIALIZATION ---
+        window.onload = () => {
+            renderAll();
+            applyConfig();
+        };
+
+        function showTab(id) {
+            document.querySelectorAll('.tab-content').forEach(el => el.classList.remove('active-tab'));
+            document.getElementById(id).classList.add('active-tab');
+        }
+
+        // --- RENDER FUNCTIONS ---
+        function renderAll() {
+            renderPOSMenu();
+            renderMgmtList();
+            updateCartUI();
+        }
+
+        function renderPOSMenu() {
+            const grid = document.getElementById('posMenuGrid');
+            grid.innerHTML = menuItems.map((item, idx) => `
+                <button onclick="addToCart(${idx})" class="bg-white p-4 rounded-xl border border-slate-200 shadow-sm hover:border-indigo-500 hover:shadow-md transition text-left group">
+                    <div class="font-bold text-slate-800 group-hover:text-indigo-600">${item.name}</div>
+                    <div class="text-slate-500 text-sm font-semibold mt-1">₹${item.price}</div>
+                </button>
+            `).join('');
+        }
+
+        function renderMgmtList() {
+            const list = document.getElementById('mgmtList');
+            list.innerHTML = menuItems.map((item, idx) => `
+                <div class="flex justify-between items-center py-4">
+                    <div>
+                        <div class="font-bold">${item.name}</div>
+                        <div class="text-sm text-slate-500">₹${item.price}</div>
+                    </div>
+                    <button onclick="deleteItem(${idx})" class="text-red-400 hover:text-red-600 text-sm font-medium">Remove</button>
+                </div>
+            `).join('');
+        }
+
+        // --- CORE LOGIC ---
+        function addToCart(idx) {
+            const item = menuItems[idx];
+            const existing = cart.find(c => c.name === item.name);
+            if(existing) {
+                existing.qty++;
+            } else {
+                cart.push({ ...item, qty: 1 });
+            }
+            updateCartUI();
+        }
+
+        function updateCartUI() {
+            const list = document.getElementById('cartList');
+            if(cart.length === 0) {
+                list.innerHTML = `<p class="text-center text-slate-400 mt-10 text-sm italic">No items selected</p>`;
+                document.getElementById('finalTotal').innerText = "0";
+                document.getElementById('subTotal').innerText = "0";
+                return;
+            }
+
+            let total = 0;
+            list.innerHTML = cart.map((item, i) => {
+                total += (item.price * item.qty);
+                return `
+                <div class="flex justify-between items-center text-sm mb-2 bg-slate-50 p-2 rounded">
+                    <div class="flex-1">
+                        <span class="font-semibold">${item.name}</span>
+                        <div class="text-xs text-slate-500">₹${item.price} x ${item.qty}</div>
+                    </div>
+                    <div class="flex items-center gap-3">
+                        <span class="font-bold text-slate-700">₹${item.price * item.qty}</span>
+                        <button onclick="removeFromCart(${i})" class="text-slate-300 hover:text-red-500">✕</button>
+                    </div>
+                </div>`;
+            }).join('');
+            
+            document.getElementById('finalTotal').innerText = total;
+            document.getElementById('subTotal').innerText = total;
+        }
+
+        function removeFromCart(i) {
+            cart.splice(i, 1);
+            updateCartUI();
+        }
+
+        function clearOrder() {
+            cart = [];
+            document.getElementById('custName').value = "";
+            document.getElementById('custMobile').value = "";
+            updateCartUI();
+        }
+
+        function saveItem() {
+            const n = document.getElementById('newLabel').value;
+            const p = document.getElementById('newPrice').value;
+            if(!n || !p) return;
+            menuItems.push({ name: n, price: parseInt(p) });
+            localStorage.setItem('cafe_menu', JSON.stringify(menuItems));
+            renderAll();
+            document.getElementById('newLabel').value = "";
+            document.getElementById('newPrice').value = "";
+        }
+
+        function deleteItem(idx) {
+            menuItems.splice(idx, 1);
+            localStorage.setItem('cafe_menu', JSON.stringify(menuItems));
+            renderAll();
+        }
+
+        function updateSettings() {
+            cafeConfig.name = document.getElementById('setBrand').value;
+            cafeConfig.header = document.getElementById('setHeader').value;
+            cafeConfig.footer = document.getElementById('setFooter').value;
+            localStorage.setItem('cafe_config', JSON.stringify(cafeConfig));
+            applyConfig();
+            alert("Settings saved successfully!");
+        }
+
+        function applyConfig() {
+            document.getElementById('navBrandName').innerText = cafeConfig.name;
+            document.getElementById('setBrand').value = cafeConfig.name;
+            document.getElementById('setHeader').value = cafeConfig.header;
+            document.getElementById('setFooter').value = cafeConfig.footer;
+        }
+
+        // --- PRINTER ENGINE (EVERYCOM 58MM) ---
+        async function handlePrint() {
+            if(cart.length === 0) return alert("Cart is empty");
+            
+            const name = document.getElementById('custName').value || "Guest";
+            const mob = document.getElementById('custMobile').value || "N/A";
+            const total = document.getElementById('finalTotal').innerText;
+
+            // 58mm Width = 32 Characters
+            const ESC = '\x1b';
+            const GS = '\x1d';
+            const init = ESC + '@';
+            const center = ESC + 'a' + '\x01';
+            const left = ESC + 'a' + '\x00';
+            const boldOn = ESC + 'E' + '\x01';
+            const boldOff = ESC + 'E' + '\x00';
+
+            let receipt = init + center + boldOn + cafeConfig.name.toUpperCase() + "\n" + boldOff;
+            receipt += cafeConfig.header + "\n";
+            receipt += "--------------------------------\n" + left;
+            receipt += "Customer: " + name + "\n";
+            receipt += "Mobile:   " + mob + "\n";
+            receipt += "Date: " + new Date().toLocaleString() + "\n";
+            receipt += "--------------------------------\n";
+            
+            cart.forEach(item => {
+                let namePart = item.name.substring(0, 20).padEnd(20);
+                let pricePart = (item.price * item.qty).toString().padStart(11);
+                receipt += namePart + " " + pricePart + "\n";
+                if(item.qty > 1) receipt += ` (Qty: ${item.qty})\n`;
+            });
+
+            receipt += "--------------------------------\n" + boldOn;
+            receipt += "TOTAL:".padEnd(20) + ("RS " + total).padStart(11) + "\n" + boldOff;
+            receipt += "--------------------------------\n" + center;
+            receipt += cafeConfig.footer + "\n\n\n\n\n";
+
+            try {
+                // Request Everycom Bluetooth Device
+                const device = await navigator.bluetooth.requestDevice({
+                    filters: [{ namePrefix: 'Everycom' }, { namePrefix: 'BT' }, { namePrefix: 'Printer' }],
+                    optionalServices: ['000018f0-0000-1000-8000-00805f9b34fb', '0000ff00-0000-1000-8000-00805f9b34fb']
+                });
+
+                const server = await device.gatt.connect();
+                // Attempt standard Chinese printer Service UUID
+                let service;
+                try {
+                    service = await server.getPrimaryService('000018f0-0000-1000-8000-00805f9b34fb');
+                } catch {
+                    service = await server.getPrimaryService('0000ff00-0000-1000-8000-00805f9b34fb');
+                }
+                
+                const characteristics = await service.getCharacteristics();
+                const writeChar = characteristics.find(c => c.properties.write || c.properties.writeWithoutResponse);
+
+                const encoder = new TextEncoder();
+                await writeChar.writeValue(encoder.encode(receipt));
+                
+                alert("Printing Done!");
+                clearOrder();
+            } catch (err) {
+                console.error(err);
+                alert("Connection Failed. Ensure Bluetooth is ON and Printer is Paired.");
+            }
+        }
+    </script>
+</body>
+</html>
